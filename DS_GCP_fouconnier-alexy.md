@@ -67,3 +67,53 @@ gcloud storage buckets create gs://dsalecy --location=EU
 ```
 
 ![ScreenBucket](screenbucket.png)
+
+### Autorisation 
+
+**Autoriser le compte sebastien.wachter.ext@univ-lille.fr doit pouvoir consulter uniquement votre projet complet (en respectant le least privilege)**
+
+gcloud projects add-iam-policy-binding ds-gcp-fouconnier-alexy \
+  --member='user:sebastien.wachter.ext@univ-lille.fr' \
+  --role='roles/viewer'
+
+**Autoriser le SA cicd-swa@notes-on-cloud-swa.iam.gserviceaccount.com à pouvoir écrire sur votre bucket (copie écran des droits)**
+
+gcloud storage buckets add-iam-policy-binding gs://dsalecy \
+  --member='serviceAccount:cicd-swa@notes-on-cloud-swa.iam.gserviceaccount.com' \
+  --role='roles/storage.objectAdmin'
+
+![ScreenBucketDroit](droit.png)
+
+
+### Config repo :
+.github/workflows/deploy.yml
+
+J'ai ajouté la key.json en secret dans le repository
+
+
+### Alerte de 50$
+
+Création canal de notification :
+
+```bash
+gcloud beta monitoring channels create \
+  --display-name="Budget Email Alert" \
+  --type=email \
+  --channel-labels=email_address=email@gmail.com
+```
+
+Ensuite on réucp l'id : `gcloud beta monitoring channels list` et ici on obtient ***6943549657688363992***
+
+Maintenant il nous faut l'id de compte : `gcloud beta billing accounts list` et on obtient ***01107B-46537C-39AE5C***
+
+On fais le commande avec nos 2 ID :
+
+```bash
+  gcloud billing budgets create --display-name "Budget Alert" \
+  --billing-account=01107B-46537C-39AE5C \
+  --budget-amount=50 \
+  --threshold-rule=percent=0.5,spend-basis=COST \
+  --threshold-rule=percent=1.0,spend-basis=COST \
+  --notifications-rule-monitoring-notification-channels=6943549657688363992
+
+```
